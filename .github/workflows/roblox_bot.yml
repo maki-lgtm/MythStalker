@@ -1,0 +1,44 @@
+name: Roblox Bot
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Restore state cache
+        uses: actions/cache@v3
+        with:
+          path: state.json
+          key: roblox-state-v1
+          restore-keys: roblox-state-v1
+
+      - name: Run bot
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          GAME_WATCH_ACCOUNTS: ${{ secrets.GAME_WATCH_ACCOUNTS }}
+          BADGE_WATCH_GAMES: ${{ secrets.BADGE_WATCH_GAMES }}
+          GROUP_RANK_WATCH: ${{ secrets.GROUP_RANK_WATCH }}
+          ONLINE_WATCH_USERS: ${{ secrets.ONLINE_WATCH_USERS }}
+        run: python bot.py
+
+      - name: Save state cache
+        uses: actions/cache@v3
+        with:
+          path: state.json
+          key: roblox-state-v1-${{ github.run_id }}
+          restore-keys: roblox-state-v1
