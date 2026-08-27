@@ -1,9 +1,12 @@
 name: Roblox Bot
-
 on:
   schedule:
-    - cron: '0 * * * *'
+    - cron: '*/5 * * * *'
   workflow_dispatch:
+
+# Needed so the bot can commit the updated state.json back to the repo.
+permissions:
+  contents: write
 
 jobs:
   run-bot:
@@ -20,13 +23,6 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Restore state cache
-        uses: actions/cache@v3
-        with:
-          path: state.json
-          key: roblox-state-v1
-          restore-keys: roblox-state-v1
-
       - name: Run bot
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
@@ -36,9 +32,13 @@ jobs:
           ONLINE_WATCH_USERS: ${{ secrets.ONLINE_WATCH_USERS }}
         run: python bot.py
 
-      - name: Save state cache
-        uses: actions/cache@v3
-        with:
-          path: state.json
-          key: roblox-state-v1-${{ github.run_id }}
-          restore-keys: roblox-state-v1
+      # This replaces the old actions/cache restore+save steps entirely.
+      # Committing state.json back to the repo is what makes state persist
+      # correctly between hourly runs -- no stale/frozen cache possible.
+      - name: Commit updated state
+        run: |
+          git config user.name "myth-hunting-bot"
+          git config user.email "actions@github.com"
+          git add state.json
+          git diff --staged --quiet || git commit -m "Update state"
+          git push
